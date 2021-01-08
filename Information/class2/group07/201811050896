@@ -1,1 +1,277 @@
+#包含的头文件
+#function.h
+bool ConnectDatabase();   //连接数据库
 
+void Freeconnect();           //释放资源
+
+void QueryData();      //查询数据库
+
+void InsertData();				//插入数据
+
+bool DeleteData();           //删除数据
+
+void login();                   //用户登录函数
+
+void BrowseData();        //浏览函数
+
+#head.h
+#include <stdio.h>
+#include <winsock.h>
+#include "mysql.h"
+#include <string>
+
+#function.cpp
+#include "head.h"
+#include "function.h"
+#include <iostream>
+
+using namespace std;
+//定义teacher结构体
+typedef struct teacher {
+	char name[2000];
+	int num;
+	char sex[2000];
+	char title[2000];
+	int lessons;
+	int classes;
+	int class_num;
+	float theory_time;
+	float exp_time;
+	float sum_time;
+}teacher;
+
+MYSQL mysql;           //mysql连接
+
+MYSQL_FIELD* fd;     //字段列数组
+
+char field[32][32];      //存字段名二维数组
+
+MYSQL_RES* res;       //代表返回行的一个查询结果集
+
+MYSQL_ROW row;  //表示数据行的列
+
+char query[1500];         //查询语句
+
+int lieshu, hangshu;        //表示列数和行数
+
+//连接函数
+bool ConnectDatabase()
+{
+	//初始化mysql
+	mysql_init(&mysql);
+	//连接mysql数据库,返回false表示连接失败，返回true 表示连接成功
+	if (!(mysql_real_connect(&mysql, "localhost", "root", "123456", "teacher_work_management", 3306, NULL, 0)))
+	{
+		cout << "Error connecting to database!";
+		return false;
+	}
+	else
+	{
+		cout << "Connect successfully" << endl;
+		return true;
+	}
+}
+
+//释放资源
+void Freeconnect()
+{
+	mysql_free_result(res);
+	mysql_close(&mysql);
+}
+
+//所有数据库操作都是先写个sql语句，然后用mysql_query(&mysql,query)来完成，包括
+//数据库或表的增删改查
+
+//查询数据
+void QueryData()
+{
+	int n;
+	cout << "请输入你要查询老师的编号" << endl;
+	cin >> n;
+	sprintf_s(query, 1024, "select * from teacher_information where num=%d", n);
+	//返回0 查询成功，返回1查询失败
+	if (mysql_query(&mysql, query))        //执行SQL语句
+	{
+		printf("Query failed (%s)\n", mysql_error(&mysql));
+		//return false;
+	}
+	else
+	{
+		printf("query success\n");
+		//return true;
+	}
+	res = mysql_store_result(&mysql);
+	//打印数据行数
+	lieshu = mysql_num_fields(res);
+	hangshu = mysql_num_rows(res);
+	for (int m = 0; fd = mysql_fetch_field(res); m++)
+		cout << fd->name << "\t";
+	cout << endl;
+	for (int i = 1; i < hangshu + 1; i++)
+	{
+		row = mysql_fetch_row(res);
+		for (int j = 0; j < lieshu; j++)
+			cout << row[j] << "\t";
+		cout << endl;
+	}
+	Freeconnect();
+}
+
+//插入数据
+void InsertData()
+{
+	teacher* teacher1 = new teacher;    //创建一个teacher结构体
+	cout << "请按顺序输入你要插入的数据" << endl;
+	cout << "请输入教师编号" << endl;
+	cin >> teacher1->num;
+	cout << "请输入教师姓名" << endl;
+	cin >> teacher1->name;
+	cout << "请输入教师性别" << endl;
+	cin >> teacher1->sex;
+	cout << "请输入教师职称" << endl;
+	cin >> teacher1->title;
+	cout << "请输入教师任教课程数" << endl;
+	cin >> teacher1->lessons;
+	cout << "请输入教师班级" << endl;
+	cin >> teacher1->classes;
+	cout << "请输入班级数目（>=2）" << endl;
+	cin >> teacher1->class_num;
+	cout << "请输入理论课时" << endl;
+	cin >> teacher1->theory_time;
+	cout << "请输入实验课时" << endl;
+	cin >> teacher1->exp_time;                  //给结构体赋值
+	if (teacher1->class_num == 2)
+		teacher1->sum_time = 3 * (teacher1->theory_time + teacher1->exp_time);
+	if (teacher1->class_num == 3)
+		teacher1->sum_time = (teacher1->theory_time + teacher1->exp_time) * 6;
+	if (teacher1->class_num >= 4)
+		teacher1->sum_time = (teacher1->theory_time + teacher1->exp_time) * 2.5 * teacher1->class_num;
+	sprintf_s(query, 1024, "insert into teacher_information values (%d,'%s','%s','%s',%d,%d,%d,%lf,%lf,%lf);", teacher1->num, teacher1->name, teacher1->sex, teacher1->title, teacher1->lessons, teacher1->classes, teacher1->class_num, teacher1->theory_time, teacher1->exp_time, teacher1->sum_time);
+	if (mysql_query(&mysql, query))
+		cout << "insert failed" << endl;
+	else
+		cout << "insert successfully" << endl;
+	delete teacher1;
+	Freeconnect();
+}
+
+//浏览数据
+void BrowseData()
+{
+	sprintf_s(query, 1024, "select * from teacher_information;");
+	//返回0 查询成功，返回1查询失败
+	if (mysql_query(&mysql, query))        //执行SQL语句0
+	{
+		printf("Query failed (%s)\n", mysql_error(&mysql));
+		//return false;
+	}
+	else
+	{
+		printf("query success\n");
+		//return true;
+	}
+	res = mysql_store_result(&mysql);
+	//打印数据行数
+	lieshu = mysql_num_fields(res);
+	hangshu = mysql_num_rows(res);
+	for (int m = 0; fd = mysql_fetch_field(res); m++)
+		cout << fd->name << "\t";
+	cout << endl;
+	for (int i = 1; i < hangshu + 1; i++)
+	{
+		row = mysql_fetch_row(res);
+		for (int j = 0; j < lieshu; j++)
+			cout << row[j] << "\t";
+		cout << endl;
+	}
+	Freeconnect();
+}
+//删除数据
+bool DeleteData()
+{
+	cout << "请输入你要删除的教师信息的编号" << endl;
+	int num;
+	cin >> num;
+	sprintf_s(query, 1024, "delete from teacher_information where num=%d", num);
+	if (mysql_query(&mysql, query))
+	{
+		cout << "delete failed" << endl;
+		return false;
+	}
+	else
+	{
+		cout << "delete successfully"<<endl;
+		return true;
+	}
+	Freeconnect();
+}
+
+void login()
+{
+	string user, password;
+	while (1)
+	{
+		cout << "请输入你的账户名：";
+		cin >> user;
+		if (user == "Knight")
+		{
+			cout << "请输入密码" << endl;
+			cin >> password;
+			if (password == "0000")
+			{
+				cout << "登录成功" << endl;
+				break;
+			}
+			else
+				cout << "密码输入错误" << endl;
+			continue;
+		}
+		else
+		{
+			cout << "账户名错误" << endl;
+			continue;
+		}
+	}
+	//若账户密码输入成功则进行连接数据库
+	cout << "欢迎来到教师工作量管理系统" << endl;
+	cout << "---------------------------------" << endl;
+	while (1)
+	{
+		ConnectDatabase();
+		cout << "请选择您要进行的服务，输入服务前的数字即可" << endl;
+		cout << "1.查询服务" << endl;
+		cout << "2.插入数据" << endl;
+		cout << "3.删除数据" << endl;
+		cout << "4.浏览数据" << endl;
+		cout << "5.退出系统" << endl;
+		int num = 0;
+		cin >> num;
+		if (num <= 0 && num >= 5)
+			cout << "请输入有效数字" << endl;
+		else if (num == 5)
+			break;
+		else
+		{
+			switch (num)
+			{
+			case 1: QueryData();  continue;
+			case 2: InsertData();  continue;
+			case 3: DeleteData();  continue;
+			case 4: BrowseData(); continue;
+			default: continue;
+			}
+		}
+	}
+}
+
+#test2.cpp
+#include "head.h"
+#include "function.h"
+using namespace std;
+
+int main()
+{	
+	
+	login();
+	return 0;
+}
